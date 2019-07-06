@@ -31,13 +31,13 @@ static constexpr auto bounceTime {5};
 // Selector - Choose between 6 voices
 // range of values [0:5[
 constexpr auto selectorSwitchPositions {6};
-const std::array<Bounce, selectorSwitchPositions> selectorSwitch {
-    Bounce(2, bounceTime),
-    Bounce(3, bounceTime),
-    Bounce(4, bounceTime),
-    Bounce(5, bounceTime),
-    Bounce(6, bounceTime),
-    Bounce(7, bounceTime),
+const std::array<std::pair<Bounce, uint_fast8_t>, selectorSwitchPositions> selectorSwitch {
+    std::make_pair(Bounce(2, bounceTime), 0),
+    {Bounce(3, bounceTime), 1},
+    {Bounce(4, bounceTime), 2},
+    {Bounce(5, bounceTime), 3},
+    {Bounce(6, bounceTime), 4},
+    {Bounce(7, bounceTime), 5},
 };
 MidiSwitch<decltype(usbMIDI), usbMIDI, selectorSwitchPositions, true> selector(channel, 0, selectorSwitch);
 
@@ -64,11 +64,11 @@ MidiPot<decltype(usbMIDI), usbMIDI> lengthAmount(channel, 6, 8);
 
 // Sustain on/half/off
 constexpr auto sustainAmountPositions {2};
-const std::array<Bounce, sustainAmountPositions> sustainAmount {
-    Bounce(11, bounceTime),
-    Bounce(12, bounceTime),
+const std::array<std::pair<Bounce, uint_fast8_t>, sustainAmountPositions> sustainAmount {
+    std::make_pair(Bounce(11, bounceTime), 127),
+    {Bounce(12, bounceTime), 0},
 };
-MidiSwitch<decltype(usbMIDI), usbMIDI, sustainAmountPositions, true> sustain(channel, 7, sustainAmount);
+MidiSwitch<decltype(usbMIDI), usbMIDI, sustainAmountPositions, true, 63> sustain(channel, 7, sustainAmount);
 
 
 // FX on/off

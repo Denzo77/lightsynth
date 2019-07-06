@@ -34,7 +34,7 @@ void SERIAL_DEBUG_MIDI(const MidiCC cc, const uint_fast8_t value) {
         Serial.println(value);
 }
 
-template<class MIDI_T, MIDI_T& midi, bool invert = false>
+template<class MIDI_T, MIDI_T& midi, bool invert = true>
 class MidiButton {
 public:
     const MidiCC cc;
@@ -58,7 +58,7 @@ public:
     void readAndSend()
     {
         if (update()) {
-            const auto ccVal = read();
+            const auto ccVal = read() ? 127 : 0;
             midi.sendControlChange(cc.control, ccVal, cc.channel);
             SERIAL_DEBUG_MIDI(cc, ccVal);
         }
@@ -69,34 +69,46 @@ public:
 template<
     class MIDI_T, MIDI_T& midi,
     uint8_t n_positions,
-    bool invert = false>
+    bool invert = false,
+    uint8_t defaultVal = 0>
 class MidiSwitch {
 public:
     const MidiCC cc;
+    using SwitchValPair_T = std::pair<Bounce, uint_fast8_t>;
 private:
-    std::array<Bounce, n_positions> positions;
+    std::array<SwitchValPair_T, n_positions> positions;
     uint_fast8_t value {};
 
 public:
-    MidiSwitch(const uint8_t channel, const uint8_t control, std::array<Bounce, n_positions> _positions) 
+    MidiSwitch(
+        const uint8_t channel, 
+        const uint8_t control, 
+        std::array<SwitchValPair_T, n_positions> _positions) 
         : cc(channel, control), positions(_positions) {}
     
     bool update() {
         auto newValue {0U};
         for(auto &position: positions) {
-            position.update();
+            auto pos = std::get<0>(position);
 
-            const auto rawVal = position.read();
+            pos.update();
+
+            const auto rawVal = pos.read();
             const auto invertVal = invert ? !rawVal : rawVal;
             if (invertVal) { break; }
 
             ++newValue;
         }
+        if (newValue >= n_positions) { 
+            newValue = defaultVal; 
+        } else {
+            newValue = std::get<1>(positions[newValue]);
+        }
 
         if (value != newValue){
             value = newValue;
             return true;
-        }
+        } 
         return false;
     }
 
