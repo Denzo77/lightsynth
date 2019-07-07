@@ -123,6 +123,10 @@ void setup() {
     pinMode(LED_GREEN, OUTPUT);
 
     usbMIDI.setHandleControlChange(controlChangeHandler);
+
+    digitalWrite(LED_GREEN, HIGH);
+    delay(100);
+    digitalWrite(LED_GREEN, LOW);
 }
 
 void loop() {
