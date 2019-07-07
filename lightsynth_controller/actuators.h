@@ -105,7 +105,7 @@ public:
             newValue = std::get<1>(positions[newValue]);
         }
 
-        if (value != newValue){
+        if ((value != newValue) && (newValue != 0xff)){
             value = newValue;
             return true;
         } 

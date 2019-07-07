@@ -22,6 +22,8 @@ MIDI_CREATE_DEFAULT_INSTANCE();
 
 // Default midi channel.
 static constexpr auto defaultChannel {2};
+// RX Channel
+static constexpr auto rxChannel {6};
 // Button bounce time.
 static constexpr auto bounceTime {5};
 
@@ -43,7 +45,7 @@ const std::array<std::pair<Bounce, uint_fast8_t>, selectorSwitchPositions> selec
     {Bounce(6, bounceTime), 4},
     {Bounce(7, bounceTime), 5},
 };
-MidiSwitch<decltype(usbMIDI), usbMIDI, selectorSwitchPositions, true> selector(defaultChannel, 0, selectorSwitch);
+MidiSwitch<decltype(usbMIDI), usbMIDI, selectorSwitchPositions, true, 255> selector(defaultChannel, 0, selectorSwitch);
 
 // Auto Play button
 MidiButton<decltype(usbMIDI), usbMIDI> autoPlay(defaultChannel, 1, 8, bounceTime);
@@ -100,7 +102,7 @@ constexpr uint8_t controlGreenLED {21};
 
 void controlChangeHandler(const byte channel, const byte control, const byte value)
 {
-    if (channel != defaultChannel) { return; }
+    if (channel != rxChannel) { return; }
 
     switch (control) {
         case (controlRedLED): { digitalWrite(LED_RED, (value != 0)); break; }
@@ -127,14 +129,6 @@ void loop() {
     selector.readAndSend();
     autoPlay.readAndSend();
 
-    // if (autoPlay.read()) {
-    //     digitalWrite(LED_RED, LOW);
-    //     digitalWrite(LED_GREEN, HIGH);
-    // } else {
-    //     digitalWrite(LED_RED, HIGH);
-    //     digitalWrite(LED_GREEN, LOW);        
-    // }
-
     arpRate.readAndSend();
     arpOnOff.readAndSend();
     scaleOnOff.readAndSend();
@@ -150,4 +144,12 @@ void loop() {
     fxRate.readAndSend();
 
     while (usbMIDI.read()) {}
+
+    // if (autoPlay.read()) {
+    //     digitalWrite(LED_RED, LOW);
+    //     digitalWrite(LED_GREEN, HIGH);
+    // } else {
+    //     digitalWrite(LED_RED, HIGH);
+    //     digitalWrite(LED_GREEN, LOW);        
+    // }
 }
