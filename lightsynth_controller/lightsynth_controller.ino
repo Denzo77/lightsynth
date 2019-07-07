@@ -21,9 +21,13 @@ MIDI_CREATE_DEFAULT_INSTANCE();
 
 
 // Default midi channel.
-static constexpr auto channel {1};
+static constexpr auto defaultChannel {2};
 // Button bounce time.
 static constexpr auto bounceTime {5};
+
+// LED Pins
+static constexpr uint_fast8_t LED_RED {15};
+static constexpr uint_fast8_t LED_GREEN {16};
 
 
 //// Inputs
@@ -39,28 +43,28 @@ const std::array<std::pair<Bounce, uint_fast8_t>, selectorSwitchPositions> selec
     {Bounce(6, bounceTime), 4},
     {Bounce(7, bounceTime), 5},
 };
-MidiSwitch<decltype(usbMIDI), usbMIDI, selectorSwitchPositions, true> selector(channel, 0, selectorSwitch);
+MidiSwitch<decltype(usbMIDI), usbMIDI, selectorSwitchPositions, true> selector(defaultChannel, 0, selectorSwitch);
 
 // Auto Play button
-MidiButton<decltype(usbMIDI), usbMIDI> autoPlay(channel, 1, 8, bounceTime);
+MidiButton<decltype(usbMIDI), usbMIDI> autoPlay(defaultChannel, 1, 8, bounceTime);
 
 
 // Arp on/off
-MidiButton<decltype(usbMIDI), usbMIDI> arpOnOff(channel, 2, 9, bounceTime);
+MidiButton<decltype(usbMIDI), usbMIDI> arpOnOff(defaultChannel, 2, 9, bounceTime);
 
 // Arp rate pot
-MidiPot<decltype(usbMIDI), usbMIDI> arpRate(channel, 3, 9);
+MidiPot<decltype(usbMIDI), usbMIDI> arpRate(defaultChannel, 3, 9);
 
 // Scale on/off
-MidiButton<decltype(usbMIDI), usbMIDI> scaleOnOff(channel, 4, 10, bounceTime);
+MidiButton<decltype(usbMIDI), usbMIDI> scaleOnOff(defaultChannel, 4, 10, bounceTime);
 
 
 
 // Onset pot
-MidiPot<decltype(usbMIDI), usbMIDI> onsetAmount(channel, 5, 7);
+MidiPot<decltype(usbMIDI), usbMIDI> onsetAmount(defaultChannel, 5, 7);
 
 // Length pot
-MidiPot<decltype(usbMIDI), usbMIDI> lengthAmount(channel, 6, 8);
+MidiPot<decltype(usbMIDI), usbMIDI> lengthAmount(defaultChannel, 6, 8);
 
 // Sustain on/half/off
 constexpr auto sustainAmountPositions {2};
@@ -68,30 +72,42 @@ const std::array<std::pair<Bounce, uint_fast8_t>, sustainAmountPositions> sustai
     std::make_pair(Bounce(11, bounceTime), 127),
     {Bounce(12, bounceTime), 0},
 };
-MidiSwitch<decltype(usbMIDI), usbMIDI, sustainAmountPositions, true, 63> sustain(channel, 7, sustainAmount);
+MidiSwitch<decltype(usbMIDI), usbMIDI, sustainAmountPositions, true, 63> sustain(defaultChannel, 7, sustainAmount);
 
 
 // FX on/off
-MidiButton<decltype(usbMIDI), usbMIDI> fxOnOff(channel, 8, 14, bounceTime);
+MidiButton<decltype(usbMIDI), usbMIDI> fxOnOff(defaultChannel, 8, 14, bounceTime);
 
 // Reverb Dry/Wet pot
-MidiPot<decltype(usbMIDI), usbMIDI> fxReverbDryWet(channel, 9, 6);
+MidiPot<decltype(usbMIDI), usbMIDI> fxReverbDryWet(defaultChannel, 9, 6);
 
 // Echo Dry/Wet pot
-MidiPot<decltype(usbMIDI), usbMIDI> fxEchoDryWet(channel, 10, 5);
+MidiPot<decltype(usbMIDI), usbMIDI> fxEchoDryWet(defaultChannel, 10, 5);
 
 // FX Fade pot
-MidiPot<decltype(usbMIDI), usbMIDI> fxFade(channel, 11, 4);
+MidiPot<decltype(usbMIDI), usbMIDI> fxFade(defaultChannel, 11, 4);
 
 // FX Rate pot
-MidiPot<decltype(usbMIDI), usbMIDI> fxRate(channel, 12, 3);
+MidiPot<decltype(usbMIDI), usbMIDI> fxRate(defaultChannel, 12, 3);
 
 
 //// Outputs
 
 // LED indicator
-// MidiCC autoPlayLED(channel, 12);
+// MidiCC autoPlayLED(defaultChannel, 12);
+constexpr uint8_t controlRedLED {20};
+constexpr uint8_t controlGreenLED {21};
 
+void controlChangeHandler(const byte channel, const byte control, const byte value)
+{
+    if (channel != defaultChannel) { return; }
+
+    switch (control) {
+        case (controlRedLED): { digitalWrite(LED_RED, (value != 0)); break; }
+        case (controlGreenLED): { digitalWrite(LED_GREEN, (value != 0)); break; }
+        default: break;
+    }
+}
 
 void setup() {
     Serial.begin(115200);
@@ -100,11 +116,24 @@ void setup() {
     Serial.println("Arduino ready.");
 
     for (auto i = 2; i != 15; ++i) { pinMode(i, INPUT_PULLUP); }
+
+    pinMode(LED_RED, OUTPUT);
+    pinMode(LED_GREEN, OUTPUT);
+
+    usbMIDI.setHandleControlChange(controlChangeHandler);
 }
 
 void loop() {
     selector.readAndSend();
     autoPlay.readAndSend();
+
+    // if (autoPlay.read()) {
+    //     digitalWrite(LED_RED, LOW);
+    //     digitalWrite(LED_GREEN, HIGH);
+    // } else {
+    //     digitalWrite(LED_RED, HIGH);
+    //     digitalWrite(LED_GREEN, LOW);        
+    // }
 
     arpRate.readAndSend();
     arpOnOff.readAndSend();
@@ -120,11 +149,5 @@ void loop() {
     fxFade.readAndSend();
     fxRate.readAndSend();
 
-
-
-
-    // usbMIDI.sendNoteOn(note, velocity, channel);
-    // delay(200);
-    // usbMIDI.sendNoteOff(note, velocity, channel);
     while (usbMIDI.read()) {}
 }
